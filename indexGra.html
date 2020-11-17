@@ -1,0 +1,154 @@
+<html>
+	<head>
+		<meta charset="utf-8"/>
+		<title>math visuals</title>
+		<script type="application/javascript">
+			var index = 0;
+			var instance;
+			var graph = {
+				dx: 0,
+				funcSet: new Array(),
+				getFuncSet: function(dataSet) {
+					for (let i = 0; i < Math.pow(dataSet.size, dataSet.size); ++i) {
+						var tmpFunc = new Array();
+						for (let j = 0; j < dataSet.size; ++j)
+							tmpFunc[j] = [dataSet.srcSet[j], dataSet.srcSet[Math.floor(i / Math.pow(dataSet.size, j)) % dataSet.size]];
+
+						this.funcSet.push(tmpFunc);
+					}
+				},
+				scale: 100,
+				currentPoint: 0,
+
+				drawStep: function(ctx, func) { 
+					ctx.save();
+					ctx.lineWidth = 4;
+					ctx.strokeStyle = 'red';
+					ctx.fillStyle = 'red';
+					var scl = this.scale;
+
+					ctx.beginPath();
+					ctx.moveTo(func[0][0] * scl, func[0][1] * scl);
+
+					for (let i = 0; i < this.currentPoint; ++i) {
+						ctx.lineTo(func[1 + i][0] * scl, func[1 + i][1] * scl);
+					}
+
+					if (this.currentPoint < func.length - 1) {
+						ctx.lineTo(this.dx + func[0][0] * scl, (func[this.currentPoint + 1][1] - func[this.currentPoint][1]) * (this.dx % this.scale) + func[this.currentPoint][1] * this.scale);
+					}
+
+					ctx.stroke();
+
+					this.dx++;
+					if (this.dx % this.scale == 0) {
+						++this.currentPoint;
+					}
+
+					ctx.restore();
+				},
+
+				drawPoints: function(ctx, func) {
+					ctx.save();
+					ctx.fillStyle = 'blue';
+					ctx.scale(this.scale, this.scale);
+
+					for (let i = 0; i < this.currentPoint + 1; ++i) {
+						ctx.beginPath();
+						ctx.arc(func[i][0], func[i][1], 0.05, 0, Math.PI * 2, true);
+						ctx.fill();
+					}
+
+					ctx.restore();
+				},
+				drawLines: function(ctx) {
+					ctx.strokeStyle = 'blue';
+					ctx.save();
+					ctx.scale(this.scale, this.scale);
+
+					ctx.beginPath();
+					ctx.moveTo(func[0][0], func[0][1]);
+					for (let i = 0; i < func.length - 1; ++i) {
+						ctx.lineTo(func[i + 1][0], func[i + 1][1]);
+					}
+
+					ctx.restore();
+					ctx.stroke();
+				}
+			};
+
+			var canvas;
+			var canvasSize = 1000;
+			var requestId;
+			var ctx;
+
+			function init() {
+				var dataSet = { 
+					lNum: -3,
+					hNum: 3,
+					srcSet: new Array(),
+					size: 0,
+					getSrcSet: function() {
+						for (let i = this.lNum; i <= this.hNum; ++i)
+							this.srcSet.push(i);
+					},
+					getSize: function() {
+						this.size = this.hNum - this.lNum + 1;
+					}
+				};
+				
+				canvas = document.getElementById('canvas');
+				ctx = canvas.getContext('2d');
+				canvas.height = canvasSize;
+				canvas.width = canvasSize;
+
+				dataSet.getSrcSet();
+				dataSet.getSize();
+
+				graph.dx = 0;
+				graph.currentPoint = 0;
+				graph.getFuncSet(dataSet);
+				instance = graph.funcSet[index];
+				
+				requestId = window.requestAnimationFrame(draw);
+			}
+
+			function drawAxises(ctx) {
+				ctx.beginPath();
+				ctx.moveTo(-canvasSize / 2, 0);
+				ctx.lineTo(canvasSize / 2, 0);
+				ctx.moveTo(0, -canvasSize / 2);
+				ctx.lineTo(0, canvasSize / 2);
+				ctx.stroke();
+			}
+			
+			function draw() {
+					ctx.globalCompositeOperation = 'source-over';
+					ctx.clearRect(0, 0, canvasSize, canvasSize);
+					ctx.strokeStyle = 'black';
+					ctx.lineWidth = 1;
+					ctx.save();
+					ctx.translate(canvasSize / 2, canvasSize / 2);
+
+					drawAxises(ctx);
+					ctx.scale(1, -1);
+
+					graph.drawPoints(ctx, instance);
+					graph.drawStep(ctx, instance);
+
+					ctx.restore();
+					if (graph.currentPoint == instance.length) {
+						window.cancelAnimationFrame(requestId);
+						++index;
+						init();
+					} else {
+						requestId = window.requestAnimationFrame(draw);
+					}
+			}
+		</script>
+
+	</head>
+	<body onload="init();">
+		<canvas id="canvas"></canvas>
+	</body>
+</html>
